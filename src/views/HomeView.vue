@@ -8,7 +8,7 @@
   >
     <a-button> 上传Excel文件 </a-button>
   </a-upload>
-  <a-button @click="downloadLink('merged.xlsx')"> 下载 </a-button>
+  <a-button @click="downloadLink('merged')"> 下载 </a-button>
 </template>
 <script lang="ts" setup>
 import { ref } from 'vue';
@@ -40,32 +40,40 @@ const readFileAsync = (file: any) => {
     reader.readAsArrayBuffer(file);
   });
 };
-function downloadLink( filename: string) {
+const processExcelList = async (fileList: any[]) => {
   const mergedWorkbook = new ExcelJS.Workbook();
   const mergedWorksheet = mergedWorkbook.addWorksheet('Merged');
-  fileList.value!.forEach(async (file: any) => {
-    const arrayBuffer = await readFileAsync(file.originFileObj).catch(error=>console.log(error));
+  for (const file of fileList){
+    const arrayBuffer = await readFileAsync(file.originFileObj).catch((error) =>
+      console.log(error)
+    );
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(arrayBuffer as Buffer);
     workbook.eachSheet((worksheet) => {
       worksheet.eachRow((row, rowNumber) => {
-        console.log(row.values)
         mergedWorksheet.addRow(row.values);
+        console.log('cell===>',mergedWorksheet.getRow(1).getCell(6).value)
+
       });
     });
+    console.log('cell===>',mergedWorksheet.getRow(1).getCell(1).value)
+  };
+  return mergedWorkbook;
+};
+const  downloadLink = async (filename: string) =>{
+  const mergedWorkbook = await processExcelList(fileList.value!)
+  console.log('cell===>',mergedWorkbook.getWorksheet(1)?.getRow(1).getCell(1).value)
+  mergedWorkbook.xlsx.writeBuffer().then((buffer: any) => {
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
   });
-
-  // workbook.xlsx.writeBuffer().then((buffer: any) => {
-  //   const blob = new Blob([buffer], {
-  //     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  //   });
-  //   const url = window.URL.createObjectURL(blob);
-  //   const link = document.createElement('a');
-  //   link.href = url;
-  //   link.download = `${filename}.xlsx`;
-  //   link.click();
-  //   window.URL.revokeObjectURL(url);
-  // });
 }
 const handleUpload = async ({ onProgress, onSuccess, file }: any) => {
   try {
