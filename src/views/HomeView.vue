@@ -8,16 +8,16 @@
   >
     <a-button> 上传Excel文件 </a-button>
   </a-upload>
-  <a-button @click="downloadLink(mergedWorkbook, 'merged.xlsx')"> 下载 </a-button>
+  <a-button @click="downloadLink('merged.xlsx')"> 下载 </a-button>
 </template>
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { Upload, Button, message } from 'ant-design-vue';
 import ExcelJS from 'exceljs';
 import type { Buffer } from 'buffer';
-const fileList = ref([]); // 存储上传的文件列表
-const mergedWorkbook = new ExcelJS.Workbook();
-const mergedWorksheet = mergedWorkbook.addWorksheet('Merged');
+import type { UploadChangeParam, UploadProps } from 'ant-design-vue';
+const fileList = ref<UploadProps['fileList']>([]); // 存储上传的文件列表
+
 const handleBeforeUpload = (file: any) => {
   const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   if (!isExcel) {
@@ -40,31 +40,44 @@ const readFileAsync = (file: any) => {
     reader.readAsArrayBuffer(file);
   });
 };
-function downloadLink(workbook: any, filename: string) {
-  workbook.xlsx.writeBuffer().then((buffer: any) => {
-    const blob = new Blob([buffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}.xlsx`;
-    link.click();
-    window.URL.revokeObjectURL(url);
-  });
-}
-const handleUpload = async ({ onProgress, onSuccess, file }: any) => {
-  try {
-    console.log('upload file==>', file);
-    const arrayBuffer = await readFileAsync(file);
+function downloadLink( filename: string) {
+  const mergedWorkbook = new ExcelJS.Workbook();
+  const mergedWorksheet = mergedWorkbook.addWorksheet('Merged');
+  fileList.value!.forEach(async (file: any) => {
+    const arrayBuffer = await readFileAsync(file.originFileObj).catch(error=>console.log(error));
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(arrayBuffer as Buffer);
-    // 在这里可以处理 workbook 中的各个 sheet
     workbook.eachSheet((worksheet) => {
       worksheet.eachRow((row, rowNumber) => {
+        console.log(row.values)
         mergedWorksheet.addRow(row.values);
       });
     });
+  });
+
+  // workbook.xlsx.writeBuffer().then((buffer: any) => {
+  //   const blob = new Blob([buffer], {
+  //     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  //   });
+  //   const url = window.URL.createObjectURL(blob);
+  //   const link = document.createElement('a');
+  //   link.href = url;
+  //   link.download = `${filename}.xlsx`;
+  //   link.click();
+  //   window.URL.revokeObjectURL(url);
+  // });
+}
+const handleUpload = async ({ onProgress, onSuccess, file }: any) => {
+  try {
+    // console.log('upload file==>', file);
+    // const arrayBuffer = await readFileAsync(file);
+    // const workbook = new ExcelJS.Workbook();
+    // await workbook.xlsx.load(arrayBuffer as Buffer);
+    // workbook.eachSheet((worksheet) => {
+    //   worksheet.eachRow((row, rowNumber) => {
+    //     mergedWorksheet.addRow(row.values);
+    //   });
+    // });
     processExcel(file).then(() => {
       message.success('文件上传成功');
       onProgress({ percent: 100 });
