@@ -15,6 +15,7 @@
     "ant-design-vue": "4.x",
     "exceljs": "^4.4.0",
     "pinia": "^2.1.7",
+    "three": "^0.159.0",
     "vue": "^3.3.10",
     "vue-router": "^4.2.5"
   },

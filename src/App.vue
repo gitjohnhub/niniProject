@@ -5,7 +5,7 @@ import  TestView from './views/TestView.vue';
 </script>
 
 <template>
-     <HomeView/>
+     <TestView />
 </template>
 
 <style scoped>
